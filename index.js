@@ -13,20 +13,27 @@ const fs      = require('fs'),
       through = require("through2");
 
 // Defaults
-let cached = [];
+let cached = {
+  'data' : envmod.getData(),
+  'file' : envmod.getFile()
+};
+
 let defaultKeep = 5;
+let envFilePath = path.resolve(process.cwd(), '.env');
 
 // Version functions
 module.exports.getVersion        = getVersion;
+module.exports.getVersionName    = getVersionName;
+
 module.exports.updateVersion     = updateVersion;
 module.exports.updateVersionName = updateVersionName;
-module.exports.getVersionName    = getVersionName;
+
 module.exports.deleteVersions    = deleteVersions;
-module.exports.manage            = manage;
-module.exports.streamedfiles     = streamedfiles;
+module.exports.update            = update;
+module.exports.updater           = updater;
 
 ////////////////////////////////////////////////////////////////////////////////
-// Version Functions
+// Getters
 ////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -35,9 +42,32 @@ module.exports.streamedfiles     = streamedfiles;
  * @return {int}             The variable version number
  */
 function getVersion(variable) {
-  return parseInt(envmod.getVariable(variable.toUpperCase() + '_VERSION'));
+  return parseInt(cached.data[variable.toUpperCase() + '_VERSION']) || undefined;
 };
 
+
+/**
+ * Get the version name of the file without incrementing the version
+ * @param  {string} file     [description]
+ * @param  {string} variable Define the variable you want to increment.
+ *                           If a variable is not defined the file extension will be used
+ * @param  {bool}   end      If true, the version will be addted just before the file extension
+ *                           Otherwise it will be placed before the first fullstip found in the filename
+ * @return {string}          Filename with version
+ */
+function getVersionName(file, variable, end) {
+
+  let extension = file.split('.').pop();
+
+  let version = getVersion((variable || extension)) || '';
+
+  return _addVersionToFilename(file, version, end);
+
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Updaters
+////////////////////////////////////////////////////////////////////////////////
 
 /**
  * Update the version number of an environment variable
@@ -48,10 +78,6 @@ function getVersion(variable) {
  * @return {int}          Returns the new version number.
  */
 function updateVersion(variable, force) {
-
-  if ( cached.data == null ) {
-    getData();
-  }
 
   let newVersion = 1;
   let currentVersion = getVersion(variable) || undefined;
@@ -76,24 +102,6 @@ function updateVersion(variable, force) {
 
 };
 
-/**
- * Get the version name of the file without incrementing the version
- * @param  {string} file     [description]
- * @param  {string} variable Define the variable you want to increment.
- *                           If a variable is not defined the file extension will be used
- * @param  {bool}   end      If true, the version will be addted just before the file extension
- *                           Otherwise it will be placed before the first fullstip found in the filename
- * @return {string}          Filename with version
- */
-function getVersionName(file, variable, end) {
-
-  let extension = file.split('.').pop();
-
-  let version = getVersion((variable || extension)) || '';
-
-  return _addVersionToFilename(file, version, end);
-
-}
 
 /**
  * Update the version name of a file
@@ -114,26 +122,123 @@ function updateVersionName(file, variable, end) {
 
 }
 
+
+/**
+ * Combines and managines a range of version controlled taks.
+ * Includes a loop detection so avoid gulp watchers triggering on every set of task runs.
+ * Deletes old versions and updates name verioning.
+ * @param  {string}  destination  The Original filename you want to update. Don't include the version number.
+ * @param  {string}  original     Pass the original filename so the comparison can match files after the version number has be verified
+ * @param  {string}  variable     Define the variable you want to increment.
+ * @param  {Boolean} increment    Define if the version name should be incremented or not
+ * @param  {int}     keep         The amount of versions you want to keep
+ * @return {string}               Final version name. Returns original if there was an error.
+ */
+var loopers = [];
+function update() {
+
+  if ( typeof arguments[0] == 'object') {
+    // Destructure arguemnts. An associative object is checked first.
+    var { destination, original, variable, increment = true, exclusions, keep = defaultKeep } = arguments[0];
+  } else {
+    // Otherwise apply the arguments in this order to these variables.
+    var [ destination, original, variable, increment = true, exclusions, keep = defaultKeep ] = arguments;
+  }
+
+  let filename = original;
+
+
+  if (typeof exclusions !== 'undefined' && filename.includes(exclusions)) {
+    return false;
+  }
+
+  try {
+
+    if (!loopers.includes(original)) {
+
+      loopers.push(original);
+
+      filename = increment ? updateVersionName(original, variable) : getVersionName(original, variable);
+
+      deleteVersions(destination, original);
+
+    } else {
+
+      filename = getVersionName(original, variable);
+    }
+
+  } catch (e) {
+
+  }
+
+  return filename;
+
+}
+
+/**
+ * This is used inside streams to versionise individual files that are output.
+ * For example, gulp-sass outputs.
+ * @param {object} - Uses all the anme options are the 'update' function above.
+ *                   Only, this function requires all options be passed as an
+ *                   associative object.
+ * @return {string} Versionised filename
+ */
+function updater() {
+
+  var args = typeof arguments[0] == 'object' ? arguments[0] : arguments;
+
+  var first = true;
+
+  return through.obj(function(file, enc, callback) {
+
+    var name = path.basename(file.path);
+
+    if (file.isBuffer()) {
+
+      args['original'] = name;
+      args['increment'] = first;
+
+      var newname = update(args);
+
+      if ( newname != false ) {
+
+        first = false;
+
+        file.path = file.base + '/' + newname;
+
+        this.push(file);
+      }
+
+    }
+
+    callback();
+  })
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Specials
+////////////////////////////////////////////////////////////////////////////////
+
 /**
  * Delete a set amount of versionsed files.
- * @param  {string} directory The Original filename you want to manage. Don't include the version number.
+ * @param  {string} destination The Original filename you want to update. Don't include the version number.
  * @param  {string} original  Pass the original filename so the comparison can match files after the version number has be verified
  * @param  {int}    keep      The amount of versions you want to keep
  * @return {array}  Returns an array of the files that were deleted
  */
-function deleteVersions(directory, original, keep) {
+function deleteVersions(destination, original, keep) {
 
-  if ( directory === 'undefined') {
-    console.warn('You must provide the directory path to look for your versioned files');
+  if ( destination === 'undefined') {
+    console.warn('You must provide the destination path to look for your versioned files');
     return [];
   }
 
   if ( original === 'undefined') {
-    console.warn('You must provide the original filename so that a comparison can be made before deleting files in ' + directory);
+    console.warn('You must provide the original filename so that a comparison can be made before deleting files in ' + destination);
     return [];
   }
 
-  const files = fs.readdirSync(directory);
+  const files = fs.readdirSync(destination);
   var keep = typeof keep !== 'undefined' ? keep : defaultKeep;
   var obj = [];
   var deleted = [];
@@ -156,12 +261,11 @@ function deleteVersions(directory, original, keep) {
       if (obj.hasOwnProperty(key)) {
         var versions = obj[key].sort((a, b) => a - b).slice(0, -(keep-1));
         for (var version in versions) {
-          var deleteFile = directory + key.replace(/^([^.]*)(.*)/, '$1'+ '.v' +versions[version] +'$2');
+          var deleteFile = destination + key.replace(/^([^.]*)(.*)/, '$1'+ '.v' +versions[version] +'$2');
           deleted.push(deleteFile);
           try {
-            log(`${chalk.hex('#BB6475')("Deleting:")} ${chalk.redBright(deleteFile)}`);
+            log(`${chalk.hex('#BB6475')("Deleted:")} ${chalk.redBright(deleteFile)}`);
           } catch(e) {
-            console.log("Deleting: " + deleteFile);
           }
 
           fs.unlinkSync(deleteFile);
@@ -174,74 +278,7 @@ function deleteVersions(directory, original, keep) {
 
 };
 
-/**
- * Combines and managines a range of version controlled taks.
- * Includes a loop detection so avoid gulp watchers triggering on every set of task runs.
- * Deletes old versions and manages name verioning.
- * @param  {string}  directory    The Original filename you want to manage. Don't include the version number.
- * @param  {string}  original     Pass the original filename so the comparison can match files after the version number has be verified
- * @param  {string}  variable     Define the variable you want to increment.
- * @param  {Boolean} increment    Define if the version name should be incremented or not
- * @param  {int}     keep         The amount of versions you want to keep
- * @return {string}               Final version name. Returns original if there was an error.
- */
-var loopers = [];
-function manage() {
 
-  if ( typeof arguments[0] == 'object') {
-    // Destructure arguemnts. An associative object is checked first.
-    var { directory, original, variable, increment = true, keep = defaultKeep } = arguments[0];
-  } else {
-    // Otherwise apply the arguments in this order to these variables.
-    var [ directory, original, variable, increment = true, keep = defaultKeep ] = arguments;
-  }
-
-  let filename = original;
-
-  try {
-
-    if (!loopers.includes(original)) {
-
-      loopers.push(original);
-
-      filename = increment ? updateVersionName(original, variable) : getVersionName(original, variable);
-
-      deleteVersions(directory, original);
-
-    } else {
-
-      filename = getVersionName(original, variable);
-    }
-
-  } catch (e) {
-
-  }
-
-  return filename;
-
-}
-
-function streamedfiles(css) {
-
-  var first = true;
-
-  return through.obj(function(file, enc, callback) {
-    var name = path.basename(file.path);
-    var arr = file.path.split('/');
-    var root = arr.indexOf(path.basename(file.base));
-
-    var oldBase = arr[root + 1];
-    if (oldBase !== 'maps') {
-      oldBase = manage(css, oldBase, 'css', first)
-      first = false;
-    }
-    arr[root + 1] = oldBase;
-    file.path = arr.join('/');
-    this.push(file);
-
-    callback();
-  })
-}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Private functions
