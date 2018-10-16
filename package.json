@@ -1,6 +1,6 @@
 {
   "name": "gulp-versioniser",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Automatically increment version numbers to file names.",
   "main": "index.js",
   "scripts": {
