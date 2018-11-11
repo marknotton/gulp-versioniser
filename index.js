@@ -20,6 +20,7 @@ let cached = {
 
 let defaultKeep = 5;
 let envFilePath = path.resolve(process.cwd(), '.env');
+let logged = [];
 
 // Version functions
 module.exports.getVersion        = getVersion;
@@ -31,6 +32,9 @@ module.exports.updateVersionName = updateVersionName;
 module.exports.deleteVersions    = deleteVersions;
 module.exports.update            = update;
 module.exports.updater           = updater;
+
+module.exports.logs              = logs;
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // Getters
@@ -224,6 +228,9 @@ function updater() {
  * @param  {string} destination The Original filename you want to update. Don't include the version number.
  * @param  {string} original  Pass the original filename so the comparison can match files after the version number has be verified
  * @param  {int}    keep      The amount of versions you want to keep
+ * @param  {bool\funciton} callback  'true' (default), lot out information about deleted files.
+ * 														'false', don't log out any details
+ * 														{funcion}, callback function with message and timestamp as the only argument.
  * @return {array}  Returns an array of the files that were deleted
  */
 function deleteVersions(destination, original, keep) {
@@ -261,10 +268,17 @@ function deleteVersions(destination, original, keep) {
       if (obj.hasOwnProperty(key)) {
         var versions = obj[key].sort((a, b) => a - b).slice(0, -(keep-1));
         for (var version in versions) {
-          var deleteFile = destination + key.replace(/^([^.]*)(.*)/, '$1'+ '.v' +versions[version] +'$2');
+          var deleteFile = (destination + key.replace(/^([^.]*)(.*)/, '$1'+ '.v' +versions[version] +'$2')).replace("//", "/");
           deleted.push(deleteFile);
           try {
-            log(`${chalk.hex('#BB6475')("Deleted:")} ${chalk.redBright(deleteFile)}`);
+						let message = `${chalk.hex('#BB6475')("Deleted:")} ${chalk.redBright(deleteFile)}`;
+
+						// if ( succesOptions.delay ) {
+							logged.push(`[${(new Date()).toTimeString().substr(0,8)}] ${message}`);
+		        // } else {
+		          // log(message);
+		        // }
+
           } catch(e) {
           }
 
@@ -278,6 +292,23 @@ function deleteVersions(destination, original, keep) {
 
 };
 
+
+function logs(output = true, clear = false) {
+
+	if (output) {
+	  logged.forEach(message => {
+	    log(message);
+	  })
+	}
+
+	if (clear) {
+		var temp = logged;
+		logged = [];
+		return temp;
+	}
+
+  return logged;
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////
