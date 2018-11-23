@@ -271,13 +271,18 @@ function deleteVersions(destination, original, keep) {
           var deleteFile = (destination + key.replace(/^([^.]*)(.*)/, '$1'+ '.v' +versions[version] +'$2')).replace("//", "/");
           deleted.push(deleteFile);
           try {
-						let message = `${chalk.hex('#BB6475')("Deleted:")} ${chalk.redBright(deleteFile)}`;
+						let message = `${chalk.hex('#E51616')("Deleted:")} ${chalk.hex('#E51616')(deleteFile)} - ${chalk.hex('#66797B')("This file was deleted because it was " + keep + " versions behind.")}`;
 
 						// if ( succesOptions.delay ) {
 							logged.push(`[${(new Date()).toTimeString().substr(0,8)}] ${message}`);
 		        // } else {
 		          // log(message);
 		        // }
+
+						// let message = `Deleted: ${deleteFile} - This file was deleted because it was ${keep} versions behind`;
+
+							// logged.push(`[${(new Date()).toTimeString().substr(0,8)}] ${chalk.hex('#E51616')(message)}`);
+
 
           } catch(e) {
           }
