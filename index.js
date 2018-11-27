@@ -7,8 +7,7 @@
 // Dependencies
 const fs      = require('fs'),
       path    = require('path'),
-      log     = require('fancy-log'),
-      chalk   = require('chalk'),
+      log     = require('@marknotton/lumberjack'),
       envmod  = require('gulp-env-modify'),
       through = require("through2");
 
@@ -20,7 +19,6 @@ let cached = {
 
 let defaultKeep = 5;
 let envFilePath = path.resolve(process.cwd(), '.env');
-let logged = [];
 
 // Version functions
 module.exports.getVersion        = getVersion;
@@ -32,9 +30,6 @@ module.exports.updateVersionName = updateVersionName;
 module.exports.deleteVersions    = deleteVersions;
 module.exports.update            = update;
 module.exports.updater           = updater;
-
-module.exports.logs              = logs;
-
 
 ////////////////////////////////////////////////////////////////////////////////
 // Getters
@@ -270,23 +265,7 @@ function deleteVersions(destination, original, keep) {
         for (var version in versions) {
           var deleteFile = (destination + key.replace(/^([^.]*)(.*)/, '$1'+ '.v' +versions[version] +'$2')).replace("//", "/");
           deleted.push(deleteFile);
-          try {
-						let message = `${chalk.hex('#E51616')("Deleted:")} ${chalk.hex('#E51616')(deleteFile)} - ${chalk.hex('#66797B')("This file was deleted because it was " + keep + " versions behind.")}`;
-
-						// if ( succesOptions.delay ) {
-							logged.push(`[${(new Date()).toTimeString().substr(0,8)}] ${message}`);
-		        // } else {
-		          // log(message);
-		        // }
-
-						// let message = `Deleted: ${deleteFile} - This file was deleted because it was ${keep} versions behind`;
-
-							// logged.push(`[${(new Date()).toTimeString().substr(0,8)}] ${chalk.hex('#E51616')(message)}`);
-
-
-          } catch(e) {
-          }
-
+					log('Deleted', deleteFile, "This file was deleted because it was " + keep + " versions behind.");
           fs.unlinkSync(deleteFile);
         }
       }
@@ -296,24 +275,6 @@ function deleteVersions(destination, original, keep) {
   return deleted;
 
 };
-
-
-function logs(output = true, clear = false) {
-
-	if (output) {
-	  logged.forEach(message => {
-	    log(message);
-	  })
-	}
-
-	if (clear) {
-		var temp = logged;
-		logged = [];
-		return temp;
-	}
-
-  return logged;
-}
 
 
 ////////////////////////////////////////////////////////////////////////////////
