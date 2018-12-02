@@ -1,18 +1,18 @@
 {
-  "name": "@marknotton/gulp/versioniser",
-  "version": "1.0.3",
-  "description": "Automatically increment version numbers to file names.",
+  "name": "@marknotton/versioniser",
+  "version": "1.1.0",
+  "description": "Cache bust filenames by automatically incrementing filenames with version numbers saved in your .env file.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/marknotton/gulp-versioniser.git"
+    "url": "git+https://github.com/marknotton/versioniser.git"
   },
   "dependencies": {
-    "@marknotton/lumberjack": "^1.0.0",
-    "gulp-env-modify": "^1.0.5",
+    "@marknotton/lumberjack": "^1.1.0",
+    "@marknotton/env": "^1.1.0",
     "through2": "^2.0.3"
   },
   "keywords": [
@@ -22,7 +22,7 @@
   "author": "Mark Notton",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/marknotton/gulp-versioniser/issues"
+    "url": "https://github.com/marknotton/versioniser/issues"
   },
-  "homepage": "https://github.com/marknotton/gulp-versioniser"
+  "homepage": "https://github.com/marknotton/versioniser"
 }

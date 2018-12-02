@@ -7,14 +7,14 @@
 // Dependencies
 const fs      = require('fs'),
       path    = require('path'),
-      log     = require('@marknotton/lumberjack'),
-      envmod  = require('gulp-env-modify'),
-      through = require("through2");
+      through = require("through2"),
+			log     = require('@marknotton/lumberjack'),
+			env     = require('@marknotton/env');
 
 // Defaults
 let cached = {
-  'data' : envmod.getData(),
-  'file' : envmod.getFile()
+  'data' : env.getData(),
+  'file' : env.getFile()
 };
 
 let defaultKeep = 5;
@@ -123,8 +123,8 @@ function updateVersionName(file, variable, end) {
 
 
 /**
- * Combines and managines a range of version controlled taks.
- * Includes a loop detection so avoid gulp watchers triggering on every set of task runs.
+ * Combines and manages a range of version controller tasks.
+ * Includes a loop detection to avoid gulp watchers triggering on every set of task runs.
  * Deletes old versions and updates name verioning.
  * @param  {string}  destination  The Original filename you want to update. Don't include the version number.
  * @param  {string}  original     Pass the original filename so the comparison can match files after the version number has be verified
@@ -182,37 +182,41 @@ function update() {
  *                   associative object.
  * @return {string} Versionised filename
  */
-function updater() {
+ function updater() {
 
-  var args = typeof arguments[0] == 'object' ? arguments[0] : arguments;
+   var args = typeof arguments[0] == 'object' ? arguments[0] : arguments;
 
-  var first = true;
+ 	if (typeof args['increment'] === 'undefined') {
+ 		args['increment'] = true;
+ 	}
 
-  return through.obj(function(file, enc, callback) {
+   var first = args['increment'];
 
-    var name = path.basename(file.path);
+   return through.obj(function(file, enc, callback) {
 
-    if (file.isBuffer()) {
+     var name = path.basename(file.path);
 
-      args['original'] = name;
-      args['increment'] = first;
+     if (file.isBuffer()) {
 
-      var newname = update(args);
+       args['original'] = name;
+       args['increment'] = first;
 
-      if ( newname != false ) {
+       var newname = update(args);
 
-        first = false;
+       if ( newname != false ) {
 
-        file.path = file.base + '/' + newname;
+         first = false;
 
-        this.push(file);
-      }
+         file.path = file.base + '/' + newname;
 
-    }
+         this.push(file);
+       }
 
-    callback();
-  })
-}
+     }
+
+     callback();
+   })
+ }
 
 ////////////////////////////////////////////////////////////////////////////////
 // Specials

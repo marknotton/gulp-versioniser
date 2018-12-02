@@ -1,71 +1,26 @@
+# Versioniser
 
+![Made For NPM](https://img.shields.io/badge/Made%20for-NPM-orange.svg) ![Made For Gulp](https://img.shields.io/badge/Made%20for-Gulp-red.svg)
 
-# Gulp Env Modify
+Cache bust filenames by automatically incrementing them with version numbers stored in your .env file.
 
-Add, edit, delete and read variables from a .env file. There is also functionality to help manage version named files.
-
-### Installation
+## Installation
 ```
-npm i gulp-env-modify --save
+npm i @marknotton/versioniser --save-dev
 ```
-### Setup
+```js
+const versioniser = require('@marknotton/versioniser');
 ```
-const envmod = require('gulp-env-modify')
-const env = envmod.getData()
-console.log(env)
-```
-------
+---
+Versioner refers to your .env file when storing version numbers for filename manipulation. If your server doesn't support environmental variables in the form of a local .env file, then Versioniser is not for you.
 
-## Data functions
-
-### Get File [*string*]
-
-Get the .env file contents as a string
-
-`envmod.getFile()`
-
-*First parameter can be the path to your .env file relative to the gulpfile.js*
-
-------
-
-### Get Data [*object*]
-
-Get the .env file content with all the variables and values passed into an object
-
-`envmod.getData()`
-
-*First parameter can be a direct request for a variable.*
-*Second parameter can be the path to your .env file relative to the gulpfile.js*
-
-------
-
-## Get & Set functions
-
-### Set Variable
-
-Add a variable and value to the .env file. Variable will be created if it isn't found. It will be overwritten if it does exists.
-
-`envmod.setVariable(variable, value)`
-
-------
-
-### Get Variable [*string*]
-
-Get variable from .env file.
-
-`envmod.getVariable(variable)`
-
-------
-
-## Versioning functions
-
-There are a few options to manage variables that are suffixed with "_VERSION".  The purpose for this (and the reason I built this plugin), is to increment a variable each time a certain gulp task is called. Allowing me to generate unique file names for concatenated files. Ultimately this helps avoid browsers from caching old files whilst avoiding the use of ugly and unreliable url parameters.
+There are a few options to manage variables that are suffixed with "_VERSION" y. The purpose for this (and the reason I built this plugin), is to increment a variable each time a certain gulp task is called. Allowing me to generate unique file names for concatenated files. Ultimately this helps avoid browsers from caching old files whilst avoiding the use of ugly and unreliable url parameters.
 
 ### Get Version [*int*]
 
 Get the version number of a variable
 
-`envmod.getVersion(variable)`
+`versioniser.getVersion(variable)`
 
 ------
 
@@ -77,7 +32,7 @@ Update the version number of a variable by incrementing the number by one.
 | name | string |  The name of the variable that prefixes the _VERSION variable  |
 | force | int | By default this function will increment by one. However, you can update a variable to a specific number.|
 
-`envmod.updateVersion(variable)`
+`versioniser.updateVersion(variable)`
 
 ------
 
@@ -91,7 +46,7 @@ To modify the filename for your gulp task, you will need to generate a dynamic n
 | variable | string |  To find the latest version number, define the variable name to look for in the .env file. You do not need to include the suffix '_VERSION' |
 | end | bool | Choose where the version number appears in the filename. This function looks for the **FIRST** full stop in the string, and prepends the version number to that. However  there may be cases where there are multiple full stops in a string. Define true to explicitly prepend the version number to the **LAST** full stop in the string. This is true by default. |
 
-`modenv.getVersionName('main.min.js', 'js', true)`
+`versioniser.getVersionName('main.min.js', 'js', true)`
 
 This will look for the `JS_VERSION=12` in your .env file and return a string that looks like this
 
@@ -119,9 +74,9 @@ Versioned files may start to get overwhelming and unnecessary. This lets you kee
 | original | string | Pass the original filename so the comparison can match files after the version number has be verified |
 | keep | int | Define how many versions of your versioned files you want to keep. By default this is set to 5.|
 
-`envmod.deleteVersions('assets/js/', 'main.min.js', 3)`
+`versioniser.deleteVersions('assets/js/', 'main.min.js', 3)`
 
 ------
 
 ### Credit
-Couldn't have built this without [gulp-dotenv](https://github.com/pine/gulp-dotenv). Thank you.
+Couldn't have built this without [gulp-dotenv](https://github.com/pine/gulp-dotenv). Thank you!
